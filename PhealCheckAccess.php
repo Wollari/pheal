@@ -54,6 +54,7 @@ class PhealCheckAccess implements PhealAccessInterface
      */
     protected $bits = array(
         'char' => array(
+            'locations'               => array('Character', 134217728),
             'contracts'               => array('Character', 67108864),
             'wallettransactions'      => array('Character', 4194304),
             'walletjournal'           => array('Character', 2097152),
@@ -83,6 +84,7 @@ class PhealCheckAccess implements PhealAccessInterface
             'accountstatus'           => array('Character', 33554432)
         ),
         'corp' => array(
+            'locations'               => array('Corporation', 16777216),
             'contracts'               => array('Corporation', 8388608),
             'titles'                  => array('Corporation', 4194304),
             'wallettransactions'      => array('Corporation', 2097152),
