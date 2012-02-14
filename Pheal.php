@@ -199,7 +199,7 @@ class Pheal
         // check access level if given (throws PhealAccessExpception if API call is not allowed)
         if($use_customkey && $this->userid && $this->key && $this->keyType) {
             try {
-                PhealConfig::getInstance()->access->check($scope,$name,$this->keyType,$this->accessMask);
+                PhealConfig::getInstance()->access->check($scope,$name,$this->keyType,$this->accessMask,$opts);
             } catch (Exception $e) {
                 PhealConfig::getInstance()->log->errorLog($scope,$name,$http_opts,$e->getMessage());
                 throw $e;

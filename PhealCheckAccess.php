@@ -84,6 +84,7 @@ class PhealCheckAccess implements PhealAccessInterface
             'accountstatus'           => array('Character', 33554432)
         ),
         'corp' => array(
+            'membertrackingextended'  => array('Corporation', 33554432),
             'locations'               => array('Corporation', 16777216),
             'contracts'               => array('Corporation', 8388608),
             'titles'                  => array('Corporation', 4194304),
@@ -125,17 +126,23 @@ class PhealCheckAccess implements PhealAccessInterface
      * @param string $scope
      * @param string $name
      * @param string $keyType
+     * @param array $params
      * @param int $accessMask
      */
-    public function check($scope, $name, $keyType, $accessMask)
+    public function check($scope, $name, $keyType, $accessMask, array $params=array())
     {
         // there's no "Account" type on the access bits level
         $type = ($keyType == "Account") ? "Character" : $keyType;
         
+	// workaround for memberTrackingExtended (parameter extended=1)
+	if( $type == "corp"&& $name == "membertracking"
+            && isset($params['extended']) && $params['extended'])
+            $name = "membertrackingextended";
+
         // no keyinfo configuration found
         // assume it's a public call or it's not yet defined
         // allow and let the CCP decide
-        if(    !$keyType
+        if( !$keyType
             || !in_array($type, array('Character','Corporation'))
             || !isset($this->bits[strtolower($scope)][strtolower($name)]))
             return true;
