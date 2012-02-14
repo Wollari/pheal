@@ -43,7 +43,8 @@ class PhealFileCache implements PhealCacheInterface
     protected $options = array(
         'delimiter' => ':',
         'umask' => 0666,
-        'umask_directory' => 0777
+        'umask_directory' => 0777,
+        'md5' => false
     );
 
     /**
@@ -82,6 +83,7 @@ class PhealFileCache implements PhealCacheInterface
         $regexp = "/[^a-z0-9,.-_=]/i";
         $userid = (int)$userid;
         $apikey = preg_replace($regexp,'_',$apikey);
+        $md5 = $this->options['md5'];
         
         // build cache filename
         $argstr = "";
@@ -91,28 +93,49 @@ class PhealFileCache implements PhealCacheInterface
             elseif(!in_array(strtolower($key), array('userid','apikey','keyid','vcode')))
                 $argstr .= preg_replace($regexp,'_',$key) . $this->options['delimiter'] . preg_replace($regexp,'_',$val) . $this->options['delimiter'];
         }
+        
+        // if argument list is too long (filesystem limitation) auto-md5 arguments
+        if(strlen($argstr) > 100)
+            $md5 = true;
+            
+        // create final filename / path
         $argstr = substr($argstr, 0, -1);
-        $filename = "Request" . ($argstr ? "_" . $argstr : "") . ".xml";
+        $filename = "Request" . ($argstr ? "_" . ($md5 ? md5($argstr) : $argstr) : "") . ".xml";
         $filepath = $this->basepath . ($userid ? "$userid/$apikey/$scope/$name/" : "public/public/$scope/$name/");
         
-        if(!file_exists($filepath)) {
+        return $filepath . $filename;
+    }
+
+    /**
+     * prepare directory for cache usage
+     * @param string $filename complete path+filename
+     */
+    protected function prepare_path($filename)
+    {
+        // extract path+file
+        $path = dirname($filename);
+        $file = basename($filename);
+        
+        // check if it's a new path which must be created
+        if(!file_exists($path)) {
             // check write access
             if(!is_writable($this->basepath))
-                throw new PhealException(sprintf("Cache directory '%s' isn't writeable", $filepath));
+                throw new PhealException(sprintf("Cache directory '%s' isn't writeable", $path));
 
             // create cache folder
             $oldUmask = umask(0);
-            mkdir($filepath, $this->options['umask_directory'], true);
+            mkdir($path, $this->options['umask_directory'], true);
             umask($oldUmask);
 
+        // path already exists
         } else {
-            // check write access
-            if(!is_writable($filepath))
-                throw new PhealException(sprintf("Cache directory '%s' isn't writeable", $filepath));
-            if(file_exists($filename) && !is_writeable($filename))
-                throw new PhealException(sprintf("Cache file '%s' isn't writeable", $filename));
+            // check write access for the directory
+            if(!is_writable($path))
+                throw new PhealException(sprintf("Cache directory '%s' isn't writeable", $path));
+            // check if the cache file is writeable (if exists)
+            if(file_exists($file) && !is_writeable($file))
+                throw new PhealException(sprintf("Cache file '%s' isn't writeable", $file));
         }
-        return $filepath . $filename;
     }
 
     /**
@@ -167,6 +190,7 @@ class PhealFileCache implements PhealCacheInterface
     public function save($userid,$apikey,$scope,$name,$args,$xml) 
     {
         $filename = $this->filename($userid, $apikey, $scope, $name, $args);
+        $this->prepare_path($filename);
         $exists = file_exists($filename);
         
         // save content
