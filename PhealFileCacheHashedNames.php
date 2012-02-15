@@ -39,6 +39,6 @@ class PhealFileCacheHashedNames extends PhealFileCache
         'delimiter' => ':',
         'umask' => 0666,
         'umask_directory' => 0777,
-        'md5args' => true
+        'md5' => true
     );
 }
