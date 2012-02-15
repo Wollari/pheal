@@ -61,14 +61,30 @@ class PhealAPIException extends PhealException
     public $cached_until_unixtime;
 
     /**
+     * requested url
+     * @var string
+     */
+    public $url;
+
+    /**
      * construct exception with EVE API errorcode, and message
      * @param int $code
      * @param string $message
      * @param SimpleXMLElement $xml
+     * @param string $url optional
+     * @param array $opts optional
      */
-    public function  __construct($code, $message, $xml)
+    public function  __construct($code, $message, $xml, $url="", array $opts=array())
     {
         $this->code = (int) $code;
+
+        // save url for further usage
+	if($url) {
+            // truncate api key for security reason
+            if(isset($opts['apikey'])) $opts['apikey'] = substr($opts['apikey'],0,16)."...";
+            if(isset($opts['vCode'])) $opts['vCode'] = substr($opts['vCode'],0,16)."...";
+	    $this->url = $url . (count($opts) ? "?" . http_build_query($opts) : "");
+	}
 
         // switch to UTC
         $oldtz	= date_default_timezone_get();

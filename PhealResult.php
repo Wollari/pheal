@@ -63,8 +63,10 @@ class PhealResult implements PhealArrayInterface
     /**
      * initializes the PhealResult
      * @param SimpleXMLElement $xml
+     * @param string $url optional parameter only for better PhealAPIExceptions
+     * @param array $opts optional parameter only for better PhealAPIExceptions
      */
-    public function __construct($xml)
+    public function __construct($xml, $url=false, array $opts=array())
     {
         // switch to UTC
         $oldtz	= date_default_timezone_get();
@@ -76,8 +78,7 @@ class PhealResult implements PhealArrayInterface
         $this->cached_until_unixtime = (int) strtotime($xml->cachedUntil);
         
 	// workaround if cachedUntil is missing in API response (request + 1 hour)
-        if(!$this->cached_until)
-        {
+        if(!$this->cached_until) {
             $this->cached_until_unixtime = $this->request_time_unixtime + 60*60;
             $this->cached_until = date('Y-m-d H:i:s',$this->cached_until_unixtime);
         }
@@ -86,8 +87,10 @@ class PhealResult implements PhealArrayInterface
         date_default_timezone_set($oldtz);
 
         // error detection
-        if($xml->error)
-            throw new PhealAPIException($xml->error["code"], (String) $xml->error, $xml);
+        if($xml->error) {
+            // throw api exception including called url
+            throw new PhealAPIException($xml->error["code"], (String) $xml->error, $xml, $url, $opts);
+	}
         $this->_element = PhealElement::parse_element($xml->result);
     }
 

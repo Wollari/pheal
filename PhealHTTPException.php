@@ -97,11 +97,17 @@ class PhealHTTPException extends PhealException
      * construct exception with http reponse code and url
      * @param int $code
      * @param string $url
+     * @param array $opts optional
      */
-    public function  __construct($code, $url)
+    public function  __construct($code, $url, array $opts=array())
     {
-        // safe url and strip apikey for security reasons
-        $this->url = preg_replace("/(apikey=)[a-z0-9]*/i","\\1...",$url);
+        // save url for further usage
+	if($url) {
+            // truncate api key for security reason
+            if(isset($opts['apikey'])) $opts['apikey'] = substr($opts['apikey'],0,16)."...";
+            if(isset($opts['vCode'])) $opts['vCode'] = substr($opts['vCode'],0,16)."...";
+	    $this->url = $url . (count($opts) ? "?" . http_build_query($opts) : "");
+	}
 
         // build error message
         $message = self::$codes[$code] ? self::$codes[$code] : 'Unknown HTTP Code';

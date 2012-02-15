@@ -247,7 +247,7 @@ class Pheal
         } else {
             $element = new SimpleXMLElement($this->xml);
         }
-        return new PhealResult($element);
+        return new PhealResult($element, $url, $http_opts);
     }
 
     /**
@@ -258,7 +258,7 @@ class Pheal
      * @param array $opts an array of query paramters
      * @return string raw http response
      */
-    public static function request_http_curl($url,$opts)
+    public static function request_http_curl($url, array $opts)
     {
         // init curl
         if(!(is_resource(self::$curl) && get_resource_type(self::$curl) == 'curl'))
@@ -285,14 +285,12 @@ class Pheal
         {
             curl_setopt(self::$curl, CURLOPT_POST, true);
             curl_setopt(self::$curl, CURLOPT_POSTFIELDS, $opts);
+            $request_url = $url;
         }
         else
         {
             curl_setopt(self::$curl, CURLOPT_POST, false);
-            
-            // attach url parameters
-            if(count($opts))
-            $url .= "?" . http_build_query($opts);
+            $request_url = $url . (count($opts) ? "?". http_build_query($opts) : "");
         }
         
         // additional headers
@@ -315,7 +313,7 @@ class Pheal
         curl_setopt(self::$curl, CURLOPT_ENCODING, "");
 
         // curl defaults
-        curl_setopt(self::$curl, CURLOPT_URL, $url);
+        curl_setopt(self::$curl, CURLOPT_URL, $request_url);
         curl_setopt(self::$curl, CURLOPT_HTTPHEADER, $headers);
         curl_setopt(self::$curl, CURLOPT_RETURNTRANSFER, true);
         
@@ -332,7 +330,7 @@ class Pheal
 
         // http errors
         if($httpCode >= 400)
-            throw new PhealHTTPException($httpCode, $url);
+            throw new PhealHTTPException($httpCode, $url, $opts);
 
         // curl errors
         if($errno)
@@ -349,7 +347,7 @@ class Pheal
      * @param array $opts an array of query paramters
      * @return string raw http response
      */
-    public static function request_http_file($url,$opts)
+    public static function request_http_file($url, array $opts)
     {
         $options = array();
         
@@ -370,11 +368,12 @@ class Pheal
         {
             $options['http']['method'] = 'POST';
             $options['http']['content'] = http_build_query($opts);
+            $request_url = $url;
         }
         // else build url parameters
         elseif(count($opts))
         {
-            $url .= "?" . http_build_query($opts);
+            $request_url = $url . (count($opts) ? "?". http_build_query($opts) : "");
         }
 
         // set track errors. needed for $php_errormsg
@@ -386,9 +385,9 @@ class Pheal
         if(count($options)) 
         {
             $context = stream_context_create($options);
-            $result = @file_get_contents($url, false, $context);
+            $result = @file_get_contents($request_url, false, $context);
         } else {
-            $result = @file_get_contents($url);
+            $result = @file_get_contents($request_url);
         }
         
         // check for http errors via magic $http_response_header
@@ -398,7 +397,7 @@ class Pheal
         
         // throw http error
         if(is_numeric($httpCode) && $httpCode >= 400)
-            throw new PhealHTTPException($httpCode, $url);
+            throw new PhealHTTPException($httpCode, $url, $opts);
 
         // throw error
         if($result === false) {
